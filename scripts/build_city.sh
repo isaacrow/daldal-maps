@@ -20,9 +20,11 @@ osmium extract --strategy=smart --bbox "$bbox" "$iraq" -o "$work/$id/city.osm.pb
 
 echo "== $id: map tiles"
 # Planetiler caches its ocean/lake downloads in $work/sources, so only the first city pays for them.
-docker run --rm -v "$work":/data "$PLANETILER_IMAGE" \
+# Default node storage (sorted table, memory-mapped) scales with the extract, not with OSM's largest node
+# id; an in-RAM array ran out of heap on the big cities. GitHub's runners have 16 GB.
+docker run --rm -e JAVA_TOOL_OPTIONS="-Xmx10g" -v "$work":/data "$PLANETILER_IMAGE" \
   --osm-path="/data/$id/city.osm.pbf" --bounds="$bbox" --download \
-  --output="/data/$id/map.pmtiles" --force --maxzoom=14 --nodemap-type=array --storage=ram
+  --output="/data/$id/map.pmtiles" --force --maxzoom=14
 mv "$work/$id/map.pmtiles" "$out/$id-map.pmtiles"
 
 echo "== $id: routing graph"
