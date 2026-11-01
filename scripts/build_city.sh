@@ -43,6 +43,10 @@ mv "$work/$id/routing.tar" "$out/$id-routing.tar"
 
 echo "== $id: search index"
 python3 -X utf8 "$here/build_search_index.py" "$work/$id/city.osm.pbf" "$out/$id-search.sqlite"
+# Foursquare Open Source Places, when they were downloaded (needs the HF_TOKEN secret; see fetch_foursquare.py).
+if [ -s "$work/fsq-iraq.parquet" ]; then
+  (cd "$here" && python3 -X utf8 add_foursquare.py "$out/$id-search.sqlite" "$work/fsq-iraq.parquet" "$bbox")
+fi
 
 rm -rf "$work/$id"
 ls -lh "$out"/"$id"-*

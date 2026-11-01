@@ -41,11 +41,21 @@ jobs:
           curl -fsSL -o work/iraq.osm.pbf https://download.geofabrik.de/asia/iraq-latest.osm.pbf
           ls -lh work/iraq.osm.pbf
 
+      - name: Foursquare Open Source Places (Apache 2.0)
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then echo "No HF_TOKEN secret: building without Foursquare places"; exit 0; fi
+          pip install --quiet duckdb
+          python3 -X utf8 scripts/fetch_foursquare.py work/fsq-iraq.parquet || echo "::warning::Foursquare download failed"
+          [ -s work/fsq-iraq.parquet ] && curl -fsSL -o out-fsq-NOTICE.txt https://fsq-os-places-us-east-1.s3.amazonaws.com/NOTICE.txt || true
+
       - name: Build cities
         env:
           ONLY: ${{ github.event.inputs.cities }}
         run: |
           mkdir -p out
+          [ -s out-fsq-NOTICE.txt ] && mv out-fsq-NOTICE.txt out/FOURSQUARE-NOTICE.txt
           python3 -c "import json; [print(c['id'], ','.join(map(str, c['bbox']))) for c in json.load(open('cities.json', encoding='utf-8'))]" > list.txt
           while read -r id bbox; do
             if [ -n "$ONLY" ] && ! echo " $ONLY " | grep -q " $id "; then continue; fi
